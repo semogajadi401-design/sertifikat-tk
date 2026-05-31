@@ -96,7 +96,7 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* No. Surat — sejajar baris titik-titik */}
-        <div style={center(Y_NO, { fontSize: '13px', fontWeight: 'bold' })}>
+        <div style={center(Y_NO, { fontSize: '14px', fontWeight: 'bold' })}>
           {student.no_surat}
         </div>
 
