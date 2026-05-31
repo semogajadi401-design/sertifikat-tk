@@ -40,8 +40,9 @@ export default function CetakPage() {
     function updateScale() {
       if (!containerRef.current) return
       const containerW = containerRef.current.offsetWidth
-      // Kurangi ruang untuk tombol navigasi kiri-kanan (2 x 48px) + gap
-      const availableW = containerW - 120
+      // Di mobile tidak pakai tombol navigasi samping, di desktop kurangi untuk tombol
+      const isMobile = window.innerWidth < 640
+      const availableW = isMobile ? containerW : containerW - 120
       const scale = Math.min(availableW / CANVAS_W, 0.95)
       setPreviewScale(scale)
     }
@@ -161,52 +162,103 @@ export default function CetakPage() {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
         {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">Cetak Sertifikat</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+        <div className="mb-3 sm:mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Cetak Sertifikat</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Siswa {index + 1} dari {students.length}:{' '}
             <span className="font-semibold text-gray-700">{student?.nama}</span>
           </p>
         </div>
 
-        {/* Tombol download — wrap di HP */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button onClick={downloadPNG} disabled={!!downloading} className="btn-secondary">
+        {/* Tombol download — 2 kolom di mobile, wrap di desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-4 sm:mb-6">
+          <button onClick={downloadPNG} disabled={!!downloading} className="btn-secondary justify-center">
             {downloading === 'png' ? <Loader2 size={15} className="animate-spin" /> : <Image size={15} />}
-            Unduh PNG
+            <span>Unduh PNG</span>
           </button>
-          <button onClick={downloadPDF} disabled={!!downloading} className="btn-primary">
+          <button onClick={downloadPDF} disabled={!!downloading} className="btn-primary justify-center">
             {downloading === 'pdf' ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
-            Unduh PDF
+            <span>Unduh PDF</span>
           </button>
-          <button onClick={() => downloadAllZip('png')} disabled={!!downloading} className="btn-secondary">
+          <button onClick={() => downloadAllZip('png')} disabled={!!downloading} className="btn-secondary justify-center">
             {downloading === 'zip-png' ? <Loader2 size={15} className="animate-spin" /> : <Package size={15} />}
-            Semua PNG (ZIP)
+            <span className="truncate">Semua PNG</span>
           </button>
-          <button onClick={() => downloadAllZip('pdf')} disabled={!!downloading} className="btn-teal">
+          <button onClick={() => downloadAllZip('pdf')} disabled={!!downloading} className="btn-teal justify-center">
             {downloading === 'zip-pdf' ? <Loader2 size={15} className="animate-spin" /> : <Package size={15} />}
-            Semua PDF (ZIP)
+            <span className="truncate">Semua PDF</span>
           </button>
         </div>
 
         {/* Preview + navigasi */}
-        <div ref={containerRef} className="flex items-center gap-2">
+        <div ref={containerRef}>
+          {/* Navigasi atas untuk mobile */}
+          <div className="flex items-center justify-between mb-3 sm:hidden">
+            <button
+              onClick={() => setIndex(i => Math.max(0, i - 1))}
+              disabled={index === 0}
+              className="flex items-center gap-1 text-sm font-semibold px-3 py-2 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-red-50 disabled:opacity-30 transition-all"
+            >
+              <ChevronLeft size={16} /> Sebelumnya
+            </button>
+            <span className="text-xs text-gray-500 font-medium">{index + 1} / {students.length}</span>
+            <button
+              onClick={() => setIndex(i => Math.min(students.length - 1, i + 1))}
+              disabled={index === students.length - 1}
+              className="flex items-center gap-1 text-sm font-semibold px-3 py-2 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-red-50 disabled:opacity-30 transition-all"
+            >
+              Berikutnya <ChevronRight size={16} />
+            </button>
+          </div>
 
-          {/* Navigasi kiri */}
-          <button
-            onClick={() => setIndex(i => Math.max(0, i - 1))}
-            disabled={index === 0}
-            className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
-          >
-            <ChevronLeft size={18} />
-          </button>
+          {/* Desktop: navigasi kiri-kanan mengapit preview */}
+          <div className="hidden sm:flex items-center gap-2">
+            <button
+              onClick={() => setIndex(i => Math.max(0, i - 1))}
+              disabled={index === 0}
+              className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
+            >
+              <ChevronLeft size={18} />
+            </button>
 
-          {/* Preview sertifikat — scale dinamis sesuai lebar layar */}
+            <div
+              className="flex-1 flex justify-center"
+              style={{ height: `${1122 * previewScale}px` }}
+            >
+              <div
+                className="shadow-2xl rounded-lg overflow-hidden"
+                style={{
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: 'top center',
+                }}
+              >
+                {student && (
+                  <SertifikatPreview
+                    ref={previewRef}
+                    id="sertifikat-canvas"
+                    student={student}
+                    settings={settings}
+                    backgroundUrl={backgroundUrl}
+                  />
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIndex(i => Math.min(students.length - 1, i + 1))}
+              disabled={index === students.length - 1}
+              className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
+          {/* Mobile: preview full width tanpa tombol samping */}
           <div
-            className="flex-1 flex justify-center"
+            className="sm:hidden flex justify-center overflow-hidden"
             style={{ height: `${1122 * previewScale}px` }}
           >
             <div
@@ -227,19 +279,10 @@ export default function CetakPage() {
               )}
             </div>
           </div>
-
-          {/* Navigasi kanan */}
-          <button
-            onClick={() => setIndex(i => Math.min(students.length - 1, i + 1))}
-            disabled={index === students.length - 1}
-            className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
-          >
-            <ChevronRight size={18} />
-          </button>
         </div>
 
         {/* Navigasi cepat */}
-        <div className="mt-6 card">
+        <div className="mt-4 sm:mt-6 card">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Navigasi Cepat</p>
           <div className="flex flex-wrap gap-2">
             {students.map((s, i) => (
@@ -260,11 +303,11 @@ export default function CetakPage() {
 
         {/* Overlay ZIP */}
         {downloading.startsWith('zip') && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-8 shadow-xl flex flex-col items-center gap-3">
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl flex flex-col items-center gap-3 w-full max-w-sm">
               <Loader2 size={32} className="animate-spin text-red-500" />
-              <p className="font-semibold text-gray-700">Membuat ZIP semua sertifikat...</p>
-              <p className="text-sm text-gray-400">
+              <p className="font-semibold text-gray-700 text-center">Membuat ZIP semua sertifikat...</p>
+              <p className="text-sm text-gray-400 text-center">
                 Sedang memproses siswa {index + 1} dari {students.length}
               </p>
             </div>
