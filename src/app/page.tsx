@@ -110,24 +110,28 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Data Siswa</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Total {total} siswa terdaftar</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={downloadTemplate} className="btn-secondary">
-              <FileSpreadsheet size={15} /> Template Excel
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Data Siswa</h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Total {total} siswa terdaftar</p>
+            </div>
+            {/* Tambah Siswa button — always visible */}
+            <button onClick={() => { setShowForm(!showForm); setForm(emptyForm); setEditId(null) }} className="btn-primary">
+              <Plus size={15} /> <span className="hidden sm:inline">Tambah Siswa</span><span className="sm:hidden">Tambah</span>
             </button>
-            <button onClick={() => fileRef.current?.click()} className="btn-secondary">
-              <Upload size={15} /> Import Excel
+          </div>
+          {/* Import/Template buttons — full width row on mobile */}
+          <div className="flex gap-2">
+            <button onClick={downloadTemplate} className="btn-secondary flex-1 sm:flex-none justify-center">
+              <FileSpreadsheet size={15} /> <span className="hidden sm:inline">Template Excel</span><span className="sm:hidden">Template</span>
+            </button>
+            <button onClick={() => fileRef.current?.click()} className="btn-secondary flex-1 sm:flex-none justify-center">
+              <Upload size={15} /> <span className="hidden sm:inline">Import Excel</span><span className="sm:hidden">Import</span>
             </button>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportExcel} />
-            <button onClick={() => { setShowForm(!showForm); setForm(emptyForm); setEditId(null) }} className="btn-primary">
-              <Plus size={15} /> Tambah Siswa
-            </button>
           </div>
         </div>
 
@@ -139,9 +143,9 @@ export default function HomePage() {
 
         {/* Form */}
         {showForm && (
-          <div className="card mb-6">
+          <div className="card mb-4 sm:mb-6">
             <h2 className="font-bold text-gray-700 mb-4">{editId ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="text-xs font-semibold text-gray-500 mb-1 block">No. Surat</label>
                 <input className="input-field" value={form.no_surat} onChange={e => setForm({ ...form, no_surat: e.target.value })} required placeholder="Contoh: 001/TK/2026" />
@@ -169,11 +173,11 @@ export default function HomePage() {
                   <option>Perempuan</option>
                 </select>
               </div>
-              <div className="col-span-2 flex gap-2 pt-1">
-                <button type="submit" disabled={loading} className="btn-primary">
+              <div className="col-span-1 sm:col-span-2 flex gap-2 pt-1">
+                <button type="submit" disabled={loading} className="btn-primary flex-1 sm:flex-none justify-center">
                   {loading ? 'Menyimpan...' : editId ? 'Update Data' : 'Simpan'}
                 </button>
-                <button type="button" onClick={() => { setShowForm(false); setForm(emptyForm); setEditId(null) }} className="btn-secondary">
+                <button type="button" onClick={() => { setShowForm(false); setForm(emptyForm); setEditId(null) }} className="btn-secondary flex-1 sm:flex-none justify-center">
                   Batal
                 </button>
               </div>
@@ -195,8 +199,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Table — mobile-optimized card list on small screens */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
@@ -238,6 +242,40 @@ export default function HomePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile card list */}
+          <div className="sm:hidden">
+            {loading ? (
+              <div className="text-center py-8 text-gray-400 text-sm">Memuat data...</div>
+            ) : students.length === 0 ? (
+              <div className="text-center py-8 text-gray-400 text-sm">Belum ada data siswa</div>
+            ) : students.map((s, i) => (
+              <div key={s.id} className="border-b border-gray-100 py-3 last:border-b-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-gray-400">{(page - 1) * PER_PAGE + i + 1}.</span>
+                      <span className="font-semibold text-gray-800 text-sm truncate">{s.nama}</span>
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${s.jenis_kelamin === 'Laki-laki' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
+                        {s.jenis_kelamin === 'Laki-laki' ? 'L' : 'P'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 space-y-0.5">
+                      <div><span className="text-gray-400">No. Surat:</span> <span className="font-mono">{s.no_surat}</span></div>
+                      <div><span className="text-gray-400">NIS:</span> {s.nis}</div>
+                      <div><span className="text-gray-400">TTL:</span> {s.tempat_lahir}, {new Date(s.tanggal_lahir).toLocaleDateString('id-ID')}</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button onClick={() => handleEdit(s)} className="text-xs bg-amber-50 text-amber-600 hover:bg-amber-100 px-2.5 py-1.5 rounded font-semibold transition-colors">Edit</button>
+                    <button onClick={() => handleDelete(s.id!)} className="text-xs bg-red-50 text-red-500 hover:bg-red-100 px-2.5 py-1.5 rounded font-semibold transition-colors">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Pagination */}
