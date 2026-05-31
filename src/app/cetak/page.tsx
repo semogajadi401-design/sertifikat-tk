@@ -11,7 +11,7 @@ export default function CetakPage() {
   const [settings, setSettings] = useState<Settings>({ tanggal_ttd: '', nama_kepsek: '' })
   const [backgroundUrl, setBackgroundUrl] = useState('')
   const [index, setIndex] = useState(0)
-  const [captureStudent, setCaptureStudent] = useState<Student | null>(null)
+  const [offscreenStudent, setOffscreenStudent] = useState<Student | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState('')
   const previewRef = useRef<HTMLDivElement>(null)
@@ -37,7 +37,7 @@ export default function CetakPage() {
    * lalu capture dengan html2canvas. Ini memastikan posisi absolute pixel
    * teks tidak terpengaruh CSS transform dari parent preview.
    */
-  async function captureStudent(s: Student): Promise<HTMLCanvasElement> {
+  async function renderAndCapture(s: Student): Promise<HTMLCanvasElement> {
     const html2canvas = (await import('html2canvas')).default
 
     // Pastikan off-screen canvas sudah siap (gambar background ter-load)
@@ -70,29 +70,29 @@ export default function CetakPage() {
   async function downloadPNG() {
     if (!student) return
     setDownloading('png')
-    setCaptureStudent(student)
+    setOffscreenStudent(student)
     // Tunggu React render off-screen + gambar load
     await new Promise(r => setTimeout(r, 800))
-    const canvas = await captureStudent(student)
+    const canvas = await renderAndCapture(student)
     const a = document.createElement('a')
     a.download = `sertifikat_${student.nama.replace(/\s+/g, '_')}.png`
     a.href = canvas.toDataURL('image/png')
     a.click()
-    setCaptureStudent(null)
+    setOffscreenStudent(null)
     setDownloading('')
   }
 
   async function downloadPDF() {
     if (!student) return
     setDownloading('pdf')
-    setCaptureStudent(student)
+    setOffscreenStudent(student)
     await new Promise(r => setTimeout(r, 800))
-    const canvas = await captureStudent(student)
+    const canvas = await renderAndCapture(student)
     const { jsPDF } = await import('jspdf')
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
     pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297)
     pdf.save(`sertifikat_${student.nama.replace(/\s+/g, '_')}.pdf`)
-    setCaptureStudent(null)
+    setOffscreenStudent(null)
     setDownloading('')
   }
 
@@ -105,10 +105,10 @@ export default function CetakPage() {
     for (let i = 0; i < students.length; i++) {
       const s = students[i]
       setIndex(i)
-      setCaptureStudent(s)
+      setOffscreenStudent(s)
       // Tunggu render + gambar load
       await new Promise(r => setTimeout(r, 800))
-      const canvas = await captureStudent(s)
+      const canvas = await renderAndCapture(s)
       const fname = `sertifikat_${s.nama.replace(/\s+/g, '_')}`
 
       if (format === 'png') {
@@ -122,7 +122,7 @@ export default function CetakPage() {
       }
     }
 
-    setCaptureStudent(null)
+    setOffscreenStudent(null)
     const blob = await zip.generateAsync({ type: 'blob' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -156,9 +156,9 @@ export default function CetakPage() {
         OFF-SCREEN CAPTURE CONTAINER
         - Dirender di luar viewport (position fixed, left: -9999px)
         - Tidak ada transform/scale sama sekali → posisi pixel absolut 100% akurat
-        - Hanya muncul saat proses download berlangsung (captureStudent !== null)
+        - Hanya muncul saat proses download berlangsung (offscreenStudent !== null)
       */}
-      {captureStudent && (
+      {offscreenStudent && (
         <div
           style={{
             position: 'fixed',
@@ -170,7 +170,7 @@ export default function CetakPage() {
         >
           <SertifikatPreview
             id="sertifikat-offscreen"
-            student={captureStudent}
+            student={offscreenStudent}
             settings={settings}
             backgroundUrl={backgroundUrl}
           />
