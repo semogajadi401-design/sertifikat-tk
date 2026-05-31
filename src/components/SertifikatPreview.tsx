@@ -55,13 +55,12 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
     // X setelah titik dua (:) — dari deteksi pixel: canvas_x ≈ 305px
     const X = 305
 
-    // Y koordinat masing-masing baris (dari deteksi pixel gambar asli)
-    const Y_NO    = 390   // sejajar baris "No. : ........"
-    const Y_BAHWA = 468   // sejajar baris "Menerangkan bahwa :"
-    const Y_NAMA  = 524   // sejajar baris "Nama"  (y_gambar=697)
-    const Y_NIS   = 554   // sejajar baris "NIS"   (y_gambar=737)
-    const Y_TTL   = 583   // sejajar baris "Tempat/Tanggal Lahir" (y_gambar=776)
-    const Y_JK    = 614   // sejajar baris "Jenis Kelamin" (y_gambar=816)
+    // Y koordinat masing-masing baris
+    const Y_NO   = 400   // sejajar baris "No. : ........" (turun sedikit dari 390)
+    const Y_NAMA = 510   // baris "Nama"  (naik dari 524)
+    const Y_NIS  = 540   // baris "NIS"   (naik dari 554)
+    const Y_TTL  = 570   // baris "Tempat/Tanggal Lahir" (naik dari 583)
+    const Y_JK   = 600   // baris "Jenis Kelamin" (naik dari 614)
 
     // Area TTD
     const Y_TGL  = 933
@@ -99,11 +98,6 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
         {/* No. Surat — sejajar baris titik-titik */}
         <div style={center(Y_NO, { fontSize: '13px', fontWeight: 'normal' })}>
           {student.no_surat}
-        </div>
-
-        {/* Nilai "Menerangkan bahwa :" */}
-        <div style={pos(Y_BAHWA, X)}>
-          {student.nama}
         </div>
 
         {/* Nama */}
