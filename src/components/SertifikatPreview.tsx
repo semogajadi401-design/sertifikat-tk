@@ -56,11 +56,11 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
     const X = 305
 
     // Y koordinat masing-masing baris
-    const Y_NO   = 400   // sejajar baris "No. : ........" (turun sedikit dari 390)
-    const Y_NAMA = 510   // baris "Nama"  (naik dari 524)
-    const Y_NIS  = 540   // baris "NIS"   (naik dari 554)
-    const Y_TTL  = 570   // baris "Tempat/Tanggal Lahir" (naik dari 583)
-    const Y_JK   = 600   // baris "Jenis Kelamin" (naik dari 614)
+    const Y_NO   = 400   // sejajar baris "No. : ........"
+    const Y_NAMA = 524   // baris "Nama"  (turun dari 510)
+    const Y_NIS  = 554   // baris "NIS"   (turun dari 540)
+    const Y_TTL  = 583   // baris "Tempat/Tanggal Lahir" (turun dari 570)
+    const Y_JK   = 613   // baris "Jenis Kelamin" (turun dari 600)
 
     // Area TTD
     const Y_TGL  = 933
