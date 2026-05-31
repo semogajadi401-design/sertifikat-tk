@@ -130,10 +130,8 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
         <div style={center(Y_KEP, { fontWeight: 'normal', fontSize: '13px' })}>
           Kepala Sekolah
         </div>
-        <div style={center(Y_NKEP, { fontSize: '14px', display: 'flex', justifyContent: 'center' })}>
-          <span style={{ borderBottom: '1.5px solid #111', paddingBottom: '3px' }}>
-            {settings.nama_kepsek}
-          </span>
+        <div style={center(Y_NKEP, { fontSize: '14px', textDecoration: 'underline', textUnderlineOffset: '4px' })}>
+          {settings.nama_kepsek}
         </div>
       </div>
     )
