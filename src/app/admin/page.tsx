@@ -27,8 +27,9 @@ export default function AdminPage() {
     e.preventDefault()
     setSaving(true)
     const { data: existing } = await supabase.from('settings').select('id').single()
-    if (existing?.id) {
-      await supabase.from('settings').update({ tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek }).eq('id', existing.id)
+    const existingData = existing as { id: string } | null
+    if (existingData?.id) {
+      await supabase.from('settings').update({ tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek }).eq('id', existingData.id)
     } else {
       await supabase.from('settings').insert({ tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek })
     }
@@ -51,8 +52,9 @@ export default function AdminPage() {
     const url = urlData.publicUrl
 
     const { data: existing } = await supabase.from('settings').select('id').single()
-    if (existing?.id) {
-      await supabase.from('settings').update({ background_url: url }).eq('id', existing.id)
+    const existingData = existing as { id: string } | null
+    if (existingData?.id) {
+      await supabase.from('settings').update({ background_url: url }).eq('id', existingData.id)
     } else {
       await supabase.from('settings').insert({ background_url: url, tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek })
     }
