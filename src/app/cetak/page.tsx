@@ -17,8 +17,15 @@ export default function CetakPage() {
   const [offscreenStudent, setOffscreenStudent] = useState<Student | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState('')
+  const [paperSize, setPaperSize] = useState<'a4' | 'f4'>('a4')
   const [previewScale, setPreviewScale] = useState(0.85)
   const previewRef = useRef<HTMLDivElement>(null)
+
+  // Dimensi kertas dalam mm
+  const PAPER = {
+    a4: { w: 210, h: 297, format: 'a4' as const },
+    f4: { w: 215, h: 330, format: [215, 330] as [number, number] },
+  }
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -91,8 +98,9 @@ export default function CetakPage() {
     await new Promise(r => setTimeout(r, 800))
     const canvas = await renderAndCapture(student)
     const { jsPDF } = await import('jspdf')
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297)
+    const p = PAPER[paperSize]
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: p.format })
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, p.w, p.h)
     pdf.save(`sertifikat_${student.nama.replace(/\s+/g, '_')}.pdf`)
     setOffscreenStudent(null)
     setDownloading('')
@@ -115,8 +123,9 @@ export default function CetakPage() {
         zip.file(`${fname}.png`, blob)
       } else {
         const { jsPDF } = await import('jspdf')
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297)
+        const p = PAPER[paperSize]
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: p.format })
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, p.w, p.h)
         zip.file(`${fname}.pdf`, pdf.output('blob'))
       }
     }
@@ -173,6 +182,26 @@ export default function CetakPage() {
           </p>
         </div>
 
+        {/* Pilihan ukuran kertas */}
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-xs font-semibold text-gray-500">Ukuran Kertas:</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setPaperSize('a4')}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${paperSize === 'a4' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200 hover:border-red-300'}`}
+            >
+              A4
+            </button>
+            <button
+              onClick={() => setPaperSize('f4')}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${paperSize === 'f4' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200 hover:border-red-300'}`}
+            >
+              F4
+            </button>
+          </div>
+          <span className="text-xs text-gray-400">{paperSize === 'a4' ? '210 × 297 mm' : '215 × 330 mm'}</span>
+        </div>
+
         {/* Tombol download — 2 kolom di mobile, wrap di desktop */}
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-4 sm:mb-6">
           <button onClick={downloadPNG} disabled={!!downloading} className="btn-secondary justify-center">
@@ -195,8 +224,8 @@ export default function CetakPage() {
 
         {/* Preview + navigasi */}
         <div ref={containerRef}>
-          {/* Navigasi atas untuk mobile */}
-          <div className="flex items-center justify-between mb-3 sm:hidden">
+          {/* Navigasi atas (mobile & desktop) */}
+          <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => setIndex(i => Math.max(0, i - 1))}
               disabled={index === 0}
@@ -214,25 +243,23 @@ export default function CetakPage() {
             </button>
           </div>
 
-          {/* Desktop: navigasi kiri-kanan mengapit preview */}
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              onClick={() => setIndex(i => Math.max(0, i - 1))}
-              disabled={index === 0}
-              className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
-            >
-              <ChevronLeft size={18} />
-            </button>
-
+          {/* Preview sertifikat — wrapper ukuran scaled, konten di-transform */}
+          <div className="flex justify-center">
             <div
-              className="flex-1 flex justify-center"
-              style={{ height: `${1122 * previewScale}px` }}
+              style={{
+                width: `${CANVAS_W * previewScale}px`,
+                height: `${1122 * previewScale}px`,
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}
             >
               <div
-                className="shadow-2xl rounded-lg overflow-hidden"
+                className="shadow-2xl rounded-lg"
                 style={{
                   transform: `scale(${previewScale})`,
-                  transformOrigin: 'top center',
+                  transformOrigin: 'top left',
+                  width: `${CANVAS_W}px`,
+                  height: '1122px',
                 }}
               >
                 {student && (
@@ -245,38 +272,6 @@ export default function CetakPage() {
                   />
                 )}
               </div>
-            </div>
-
-            <button
-              onClick={() => setIndex(i => Math.min(students.length - 1, i + 1))}
-              disabled={index === students.length - 1}
-              className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          {/* Mobile: preview full width tanpa tombol samping */}
-          <div
-            className="sm:hidden flex justify-center overflow-hidden"
-            style={{ height: `${1122 * previewScale}px` }}
-          >
-            <div
-              className="shadow-2xl rounded-lg overflow-hidden"
-              style={{
-                transform: `scale(${previewScale})`,
-                transformOrigin: 'top center',
-              }}
-            >
-              {student && (
-                <SertifikatPreview
-                  ref={previewRef}
-                  id="sertifikat-canvas"
-                  student={student}
-                  settings={settings}
-                  backgroundUrl={backgroundUrl}
-                />
-              )}
             </div>
           </div>
         </div>
