@@ -6,6 +6,9 @@ import SertifikatPreview from '@/components/SertifikatPreview'
 import { supabase, Student, Settings } from '@/lib/supabase'
 import { ChevronLeft, ChevronRight, Image, FileText, Package, Loader2 } from 'lucide-react'
 
+// Ukuran canvas sertifikat (A4 screen)
+const CANVAS_W = 794
+
 export default function CetakPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [settings, setSettings] = useState<Settings>({ tanggal_ttd: '', nama_kepsek: '' })
@@ -14,7 +17,9 @@ export default function CetakPage() {
   const [offscreenStudent, setOffscreenStudent] = useState<Student | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState('')
+  const [previewScale, setPreviewScale] = useState(0.85)
   const previewRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function load() {
@@ -30,48 +35,44 @@ export default function CetakPage() {
     load()
   }, [])
 
+  // Hitung scale dinamis berdasarkan lebar container
+  useEffect(() => {
+    function updateScale() {
+      if (!containerRef.current) return
+      const containerW = containerRef.current.offsetWidth
+      // Kurangi ruang untuk tombol navigasi kiri-kanan (2 x 48px) + gap
+      const availableW = containerW - 120
+      const scale = Math.min(availableW / CANVAS_W, 0.95)
+      setPreviewScale(scale)
+    }
+    updateScale()
+    window.addEventListener('resize', updateScale)
+    return () => window.removeEventListener('resize', updateScale)
+  }, [loading])
+
   const student = students[index]
 
-  /**
-   * Render student tertentu ke off-screen container (tanpa transform/scale),
-   * lalu capture dengan html2canvas. Ini memastikan posisi absolute pixel
-   * teks tidak terpengaruh CSS transform dari parent preview.
-   */
   async function renderAndCapture(s: Student): Promise<HTMLCanvasElement> {
     const html2canvas = (await import('html2canvas')).default
-
-    // Pastikan off-screen canvas sudah siap (gambar background ter-load)
     const offscreenEl = document.getElementById('sertifikat-offscreen')!
-
-    // Tunggu semua gambar di dalam off-screen container selesai load
     const imgs = offscreenEl.querySelectorAll('img')
     await Promise.all(
-      Array.from(imgs).map(
-        img =>
-          img.complete
-            ? Promise.resolve()
-            : new Promise<void>(resolve => {
-                img.onload = () => resolve()
-                img.onerror = () => resolve()
-              })
+      Array.from(imgs).map(img =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise<void>(resolve => {
+              img.onload = () => resolve()
+              img.onerror = () => resolve()
+            })
       )
     )
-
-    return html2canvas(offscreenEl, {
-      useCORS: true,
-      scale: 2,
-      logging: false,
-      // Off-screen container sudah di luar viewport; kita perlu posisinya tepat
-      scrollX: 0,
-      scrollY: 0,
-    })
+    return html2canvas(offscreenEl, { useCORS: true, scale: 2, logging: false, scrollX: 0, scrollY: 0 })
   }
 
   async function downloadPNG() {
     if (!student) return
     setDownloading('png')
     setOffscreenStudent(student)
-    // Tunggu React render off-screen + gambar load
     await new Promise(r => setTimeout(r, 800))
     const canvas = await renderAndCapture(student)
     const a = document.createElement('a')
@@ -101,16 +102,13 @@ export default function CetakPage() {
     setDownloading('zip-' + format)
     const JSZip = (await import('jszip')).default
     const zip = new JSZip()
-
     for (let i = 0; i < students.length; i++) {
       const s = students[i]
       setIndex(i)
       setOffscreenStudent(s)
-      // Tunggu render + gambar load
       await new Promise(r => setTimeout(r, 800))
       const canvas = await renderAndCapture(s)
       const fname = `sertifikat_${s.nama.replace(/\s+/g, '_')}`
-
       if (format === 'png') {
         const blob = await new Promise<Blob>(res => canvas.toBlob(b => res(b!), 'image/png'))
         zip.file(`${fname}.png`, blob)
@@ -121,7 +119,6 @@ export default function CetakPage() {
         zip.file(`${fname}.pdf`, pdf.output('blob'))
       }
     }
-
     setOffscreenStudent(null)
     const blob = await zip.generateAsync({ type: 'blob' })
     const a = document.createElement('a')
@@ -152,22 +149,9 @@ export default function CetakPage() {
     <div className="min-h-screen">
       <Navbar />
 
-      {/*
-        OFF-SCREEN CAPTURE CONTAINER
-        - Dirender di luar viewport (position fixed, left: -9999px)
-        - Tidak ada transform/scale sama sekali → posisi pixel absolut 100% akurat
-        - Hanya muncul saat proses download berlangsung (offscreenStudent !== null)
-      */}
+      {/* Off-screen container untuk capture — tidak ada transform */}
       {offscreenStudent && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: '-9999px',
-            zIndex: -1,
-            pointerEvents: 'none',
-          }}
-        >
+        <div style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1, pointerEvents: 'none' }}>
           <SertifikatPreview
             id="sertifikat-offscreen"
             student={offscreenStudent}
@@ -178,51 +162,59 @@ export default function CetakPage() {
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Cetak Sertifikat</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Siswa {index + 1} dari {students.length}:{' '}
-              <span className="font-semibold text-gray-700">{student?.nama}</span>
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 justify-end">
-            <button onClick={downloadPNG} disabled={!!downloading} className="btn-secondary">
-              {downloading === 'png' ? <Loader2 size={15} className="animate-spin" /> : <Image size={15} />}
-              Unduh PNG
-            </button>
-            <button onClick={downloadPDF} disabled={!!downloading} className="btn-primary">
-              {downloading === 'pdf' ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
-              Unduh PDF
-            </button>
-            <button onClick={() => downloadAllZip('png')} disabled={!!downloading} className="btn-secondary">
-              {downloading === 'zip-png' ? <Loader2 size={15} className="animate-spin" /> : <Package size={15} />}
-              Semua PNG (ZIP)
-            </button>
-            <button onClick={() => downloadAllZip('pdf')} disabled={!!downloading} className="btn-teal">
-              {downloading === 'zip-pdf' ? <Loader2 size={15} className="animate-spin" /> : <Package size={15} />}
-              Semua PDF (ZIP)
-            </button>
-          </div>
+
+        {/* Header */}
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">Cetak Sertifikat</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Siswa {index + 1} dari {students.length}:{' '}
+            <span className="font-semibold text-gray-700">{student?.nama}</span>
+          </p>
         </div>
 
-        <div className="flex gap-6">
-          {/* Navigasi kiri */}
-          <div className="flex flex-col items-center justify-center gap-2 w-10">
-            <button
-              onClick={() => setIndex(i => Math.max(0, i - 1))}
-              disabled={index === 0}
-              className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
-            >
-              <ChevronLeft size={18} />
-            </button>
-          </div>
+        {/* Tombol download — wrap di HP */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button onClick={downloadPNG} disabled={!!downloading} className="btn-secondary">
+            {downloading === 'png' ? <Loader2 size={15} className="animate-spin" /> : <Image size={15} />}
+            Unduh PNG
+          </button>
+          <button onClick={downloadPDF} disabled={!!downloading} className="btn-primary">
+            {downloading === 'pdf' ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
+            Unduh PDF
+          </button>
+          <button onClick={() => downloadAllZip('png')} disabled={!!downloading} className="btn-secondary">
+            {downloading === 'zip-png' ? <Loader2 size={15} className="animate-spin" /> : <Package size={15} />}
+            Semua PNG (ZIP)
+          </button>
+          <button onClick={() => downloadAllZip('pdf')} disabled={!!downloading} className="btn-teal">
+            {downloading === 'zip-pdf' ? <Loader2 size={15} className="animate-spin" /> : <Package size={15} />}
+            Semua PDF (ZIP)
+          </button>
+        </div>
 
-          {/* Preview sertifikat — scale hanya untuk tampilan, TIDAK ikut di-capture */}
-          <div className="flex-1 flex flex-col items-center">
+        {/* Preview + navigasi */}
+        <div ref={containerRef} className="flex items-center gap-2">
+
+          {/* Navigasi kiri */}
+          <button
+            onClick={() => setIndex(i => Math.max(0, i - 1))}
+            disabled={index === 0}
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          {/* Preview sertifikat — scale dinamis sesuai lebar layar */}
+          <div
+            className="flex-1 flex justify-center"
+            style={{ height: `${1122 * previewScale}px` }}
+          >
             <div
               className="shadow-2xl rounded-lg overflow-hidden"
-              style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}
+              style={{
+                transform: `scale(${previewScale})`,
+                transformOrigin: 'top center',
+              }}
             >
               {student && (
                 <SertifikatPreview
@@ -237,15 +229,13 @@ export default function CetakPage() {
           </div>
 
           {/* Navigasi kanan */}
-          <div className="flex flex-col items-center justify-center gap-2 w-10">
-            <button
-              onClick={() => setIndex(i => Math.min(students.length - 1, i + 1))}
-              disabled={index === students.length - 1}
-              className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
+          <button
+            onClick={() => setIndex(i => Math.min(students.length - 1, i + 1))}
+            disabled={index === students.length - 1}
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
 
         {/* Navigasi cepat */}
@@ -268,7 +258,7 @@ export default function CetakPage() {
           </div>
         </div>
 
-        {/* Overlay loading saat download ZIP */}
+        {/* Overlay ZIP */}
         {downloading.startsWith('zip') && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl p-8 shadow-xl flex flex-col items-center gap-3">
