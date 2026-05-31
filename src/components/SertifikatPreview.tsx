@@ -15,7 +15,30 @@ interface Props {
   backgroundUrl: string
 }
 
+const FONT = "'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif"
+const FONT_SIZE = '15px'
+
 const SertifikatPreview = forwardRef<HTMLDivElement, Props>(({ student, settings, backgroundUrl }, ref) => {
+
+  const textStyle = (
+    top: number,
+    left?: number,
+    extra?: React.CSSProperties
+  ): React.CSSProperties => ({
+    position: 'absolute',
+    top: `${top}px`,
+    fontFamily: FONT,
+    fontSize: FONT_SIZE,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    whiteSpace: 'nowrap',
+    ...(left !== undefined
+      ? { left: `${left}px` }
+      : { left: 0, width: '100%', textAlign: 'center' }
+    ),
+    ...extra,
+  })
+
   return (
     <div
       ref={ref}
@@ -24,63 +47,74 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(({ student, settings
         width: '794px',
         height: '1123px',
         position: 'relative',
-        fontFamily: 'Times New Roman, serif',
         overflow: 'hidden',
         backgroundColor: '#fff',
       }}
     >
-      {/* Background Image */}
       {backgroundUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={backgroundUrl}
-          alt="background"
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          alt="bg"
+          style={{
+            position: 'absolute',
+            top: 0, left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'fill',
+          }}
           crossOrigin="anonymous"
         />
       )}
 
-      {/* Overlay content */}
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-        {/* No. Surat */}
-        <div style={{ position: 'absolute', top: '325px', left: '0', width: '100%', textAlign: 'center', fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>
-          {student.no_surat}
-        </div>
+      {/* No. Surat */}
+      <div style={textStyle(335, undefined, { fontSize: '14px', letterSpacing: '2px' })}>
+        {student.no_surat}
+      </div>
 
-        {/* Nama */}
-        <div style={{ position: 'absolute', top: '452px', left: '320px', fontSize: '15px', fontWeight: 'bold' }}>
-          {student.nama}
-        </div>
+      {/* Menerangkan bahwa */}
+      <div style={textStyle(385, 252)}>
+        {student.nama}
+      </div>
 
-        {/* NIS */}
-        <div style={{ position: 'absolute', top: '480px', left: '320px', fontSize: '15px', fontWeight: 'bold' }}>
-          {student.nis}
-        </div>
+      {/* Nama */}
+      <div style={textStyle(467, 252)}>
+        {student.nama}
+      </div>
 
-        {/* Tempat/Tanggal Lahir */}
-        <div style={{ position: 'absolute', top: '508px', left: '320px', fontSize: '15px', fontWeight: 'bold' }}>
-          {student.tempat_lahir}, {formatTanggal(student.tanggal_lahir)}
-        </div>
+      {/* NIS */}
+      <div style={textStyle(502, 252)}>
+        {student.nis}
+      </div>
 
-        {/* Jenis Kelamin */}
-        <div style={{ position: 'absolute', top: '536px', left: '320px', fontSize: '15px', fontWeight: 'bold' }}>
-          {student.jenis_kelamin}
-        </div>
+      {/* Tempat / Tanggal Lahir */}
+      <div style={textStyle(538, 252)}>
+        {student.tempat_lahir}, {formatTanggal(student.tanggal_lahir)}
+      </div>
 
-        {/* Tanggal TTD */}
-        <div style={{ position: 'absolute', top: '870px', left: '0', width: '100%', textAlign: 'center', fontSize: '14px' }}>
-          {settings.tanggal_ttd}
-        </div>
+      {/* Jenis Kelamin */}
+      <div style={textStyle(573, 252)}>
+        {student.jenis_kelamin}
+      </div>
 
-        {/* Mengetahui + Kepala Sekolah */}
-        <div style={{ position: 'absolute', top: '890px', left: '0', width: '100%', textAlign: 'center', fontSize: '14px', lineHeight: '1.6' }}>
-          Mengetahui<br />Kepala Sekolah
-        </div>
+      {/* Tanggal TTD */}
+      <div style={textStyle(958, undefined, { fontWeight: 'normal', fontSize: '14px' })}>
+        {settings.tanggal_ttd}
+      </div>
 
-        {/* Nama Kepsek */}
-        <div style={{ position: 'absolute', top: '980px', left: '0', width: '100%', textAlign: 'center', fontSize: '15px', fontWeight: 'bold', textDecoration: 'underline', letterSpacing: '0.5px' }}>
-          {settings.nama_kepsek}
-        </div>
+      {/* Mengetahui */}
+      <div style={textStyle(982, undefined, { fontWeight: 'normal', fontSize: '14px' })}>
+        Mengetahui
+      </div>
+
+      {/* Kepala Sekolah */}
+      <div style={textStyle(1005, undefined, { fontWeight: 'normal', fontSize: '14px' })}>
+        Kepala Sekolah
+      </div>
+
+      {/* Nama Kepala Sekolah */}
+      <div style={textStyle(1082, undefined, { textDecoration: 'underline', letterSpacing: '0.5px', fontSize: '15px' })}>
+        {settings.nama_kepsek}
       </div>
     </div>
   )
