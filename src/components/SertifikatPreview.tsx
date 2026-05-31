@@ -24,7 +24,19 @@ const FONT = "'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif"
 const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
   ({ student, settings, backgroundUrl, id = 'sertifikat-canvas' }, ref) => {
 
-    // Teks rata tengah
+    const pos = (top: number, left: number, extra?: React.CSSProperties): React.CSSProperties => ({
+      position: 'absolute',
+      top: `${top}px`,
+      left: `${left}px`,
+      fontFamily: FONT,
+      fontSize: '14px',
+      fontWeight: 'bold',
+      color: '#111',
+      whiteSpace: 'nowrap',
+      lineHeight: '1',
+      ...extra,
+    })
+
     const center = (top: number, extra?: React.CSSProperties): React.CSSProperties => ({
       position: 'absolute',
       top: `${top}px`,
@@ -40,33 +52,18 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
       ...extra,
     })
 
-    // Teks dengan posisi kiri (X) tertentu
-    const pos = (top: number, left: number, extra?: React.CSSProperties): React.CSSProperties => ({
-      position: 'absolute',
-      top: `${top}px`,
-      left: `${left}px`,
-      fontFamily: FONT,
-      fontSize: '14px',
-      fontWeight: 'bold',
-      color: '#111',
-      whiteSpace: 'nowrap',
-      lineHeight: '1',
-      ...extra,
-    })
+    // X setelah titik dua (:) — dari deteksi pixel: canvas_x ≈ 305px
+    const X = 305
 
-    // ── Koordinat dari Photoshop (dikonversi ke canvas 794×1122) ──
-    // No. surat → tepat di bawah "Surat Keterangan Tamat Belajar"
-    const Y_NO    = 407
-    // Nilai "Menerangkan bahwa :" → X=311, Y=478
-    const X_VALUE = 311
-    const Y_BAHWA = 478
-    // Nama, NIS, TTL, JK
-    const Y_NAMA  = 495
-    const Y_NIS   = 538
-    const Y_TTL   = 561
-    const Y_JK    = 621
+    // Y koordinat masing-masing baris (dari deteksi pixel gambar asli)
+    const Y_NO    = 390   // sejajar baris "No. : ........"
+    const Y_BAHWA = 468   // sejajar baris "Menerangkan bahwa :"
+    const Y_NAMA  = 524   // sejajar baris "Nama"  (y_gambar=697)
+    const Y_NIS   = 554   // sejajar baris "NIS"   (y_gambar=737)
+    const Y_TTL   = 583   // sejajar baris "Tempat/Tanggal Lahir" (y_gambar=776)
+    const Y_JK    = 614   // sejajar baris "Jenis Kelamin" (y_gambar=816)
 
-    // Area TTD (tidak berubah)
+    // Area TTD
     const Y_TGL  = 933
     const Y_MEN  = 959
     const Y_KEP  = 985
@@ -84,7 +81,6 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
           backgroundColor: '#fff',
         }}
       >
-        {/* Background */}
         {backgroundUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -100,33 +96,33 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
           />
         )}
 
-        {/* No. Surat — rata tengah di bawah judul */}
-        <div style={center(Y_NO, { fontSize: '13px', fontWeight: 'normal', letterSpacing: '0.5px' })}>
+        {/* No. Surat — sejajar baris titik-titik */}
+        <div style={center(Y_NO, { fontSize: '13px', fontWeight: 'normal' })}>
           {student.no_surat}
         </div>
 
         {/* Nilai "Menerangkan bahwa :" */}
-        <div style={pos(Y_BAHWA, X_VALUE)}>
+        <div style={pos(Y_BAHWA, X)}>
           {student.nama}
         </div>
 
         {/* Nama */}
-        <div style={pos(Y_NAMA, X_VALUE)}>
+        <div style={pos(Y_NAMA, X)}>
           {student.nama}
         </div>
 
         {/* NIS */}
-        <div style={pos(Y_NIS, X_VALUE)}>
+        <div style={pos(Y_NIS, X)}>
           {student.nis}
         </div>
 
         {/* Tempat / Tanggal Lahir */}
-        <div style={pos(Y_TTL, X_VALUE)}>
+        <div style={pos(Y_TTL, X)}>
           {student.tempat_lahir}, {formatTanggal(student.tanggal_lahir)}
         </div>
 
         {/* Jenis Kelamin */}
-        <div style={pos(Y_JK, X_VALUE)}>
+        <div style={pos(Y_JK, X)}>
           {student.jenis_kelamin}
         </div>
 
