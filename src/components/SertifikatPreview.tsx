@@ -29,7 +29,7 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
       top: `${top}px`,
       left: `${left}px`,
       fontFamily: FONT,
-      fontSize: '14px',
+      fontSize: '18px',
       fontWeight: 'bold',
       color: '#111',
       whiteSpace: 'nowrap',
@@ -66,7 +66,7 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
     const Y_TGL  = 933
     const Y_MEN  = 959
     const Y_KEP  = 985
-    const Y_NKEP = 1068
+    const Y_NKEP = 1050
 
     return (
       <div
@@ -130,7 +130,7 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
         <div style={center(Y_KEP, { fontWeight: 'normal', fontSize: '13px' })}>
           Kepala Sekolah
         </div>
-        <div style={center(Y_NKEP, { textDecoration: 'underline', fontSize: '14px' })}>
+        <div style={center(Y_NKEP, { fontSize: '14px', textDecoration: 'underline', textUnderlineOffset: '8px', lineHeight: '1.8' })}>
           {settings.nama_kepsek}
         </div>
       </div>
