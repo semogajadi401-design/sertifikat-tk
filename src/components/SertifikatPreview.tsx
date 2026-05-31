@@ -66,7 +66,7 @@ const SertifikatPreview = forwardRef<HTMLDivElement, Props>(
     const Y_TGL  = 933
     const Y_MEN  = 959
     const Y_KEP  = 985
-    const Y_NKEP = 1068
+    const Y_NKEP = 1050
 
     return (
       <div
