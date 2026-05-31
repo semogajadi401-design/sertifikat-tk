@@ -214,24 +214,35 @@ export default function CetakPage() {
             </button>
           </div>
 
-          {/* Preview sertifikat — zoom mengecilkan elemen sekaligus tingginya */}
+          {/* Preview sertifikat — wrapper ukuran scaled, konten di-transform */}
           <div className="flex justify-center">
             <div
-              className="shadow-2xl rounded-lg overflow-hidden origin-top"
               style={{
                 width: `${CANVAS_W * previewScale}px`,
-                zoom: previewScale,
+                height: `${1122 * previewScale}px`,
+                overflow: 'hidden',
+                flexShrink: 0,
               }}
             >
-              {student && (
-                <SertifikatPreview
-                  ref={previewRef}
-                  id="sertifikat-canvas"
-                  student={student}
-                  settings={settings}
-                  backgroundUrl={backgroundUrl}
-                />
-              )}
+              <div
+                className="shadow-2xl rounded-lg"
+                style={{
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: 'top left',
+                  width: `${CANVAS_W}px`,
+                  height: '1122px',
+                }}
+              >
+                {student && (
+                  <SertifikatPreview
+                    ref={previewRef}
+                    id="sertifikat-canvas"
+                    student={student}
+                    settings={settings}
+                    backgroundUrl={backgroundUrl}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
