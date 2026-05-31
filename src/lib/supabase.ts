@@ -1,10 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
 export type Student = {
   id?: string
   no_surat: string
@@ -22,3 +17,23 @@ export type Settings = {
   nama_kepsek: string
   background_url?: string
 }
+
+export function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) throw new Error('Supabase env variables not set')
+  return createClient(url, key)
+}
+
+let _client: ReturnType<typeof createClient> | null = null
+export function getSupabaseClient() {
+  if (typeof window === 'undefined') return getSupabase()
+  if (!_client) _client = getSupabase()
+  return _client
+}
+
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_, prop) {
+    return getSupabaseClient()[prop as keyof ReturnType<typeof createClient>]
+  }
+})
