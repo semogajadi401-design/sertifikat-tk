@@ -14,7 +14,7 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 flex items-center justify-between h-14">
         <span className="font-display font-bold text-red-600 text-base sm:text-lg tracking-tight whitespace-nowrap">
-          🎓 <span className="hidden xs:inline">TKQu </span>Alifatma
+          🎓 <span className="hidden xs:inline">TKQu </span>Alifatma-Betet
         </span>
         <div className="flex items-center gap-0.5 sm:gap-1">
           {links.map(({ href, label, icon: Icon }) => (
