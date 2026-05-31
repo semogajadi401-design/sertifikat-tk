@@ -195,8 +195,8 @@ export default function CetakPage() {
 
         {/* Preview + navigasi */}
         <div ref={containerRef}>
-          {/* Navigasi atas untuk mobile */}
-          <div className="flex items-center justify-between mb-3 sm:hidden">
+          {/* Navigasi atas (mobile & desktop) */}
+          <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => setIndex(i => Math.max(0, i - 1))}
               disabled={index === 0}
@@ -214,58 +214,13 @@ export default function CetakPage() {
             </button>
           </div>
 
-          {/* Desktop: navigasi kiri-kanan mengapit preview */}
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              onClick={() => setIndex(i => Math.max(0, i - 1))}
-              disabled={index === 0}
-              className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
-            >
-              <ChevronLeft size={18} />
-            </button>
-
+          {/* Preview sertifikat — zoom mengecilkan elemen sekaligus tingginya */}
+          <div className="flex justify-center">
             <div
-              className="flex-1 flex justify-center"
-              style={{ height: `${1122 * previewScale}px` }}
-            >
-              <div
-                className="shadow-2xl rounded-lg overflow-hidden"
-                style={{
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: 'top center',
-                }}
-              >
-                {student && (
-                  <SertifikatPreview
-                    ref={previewRef}
-                    id="sertifikat-canvas"
-                    student={student}
-                    settings={settings}
-                    backgroundUrl={backgroundUrl}
-                  />
-                )}
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIndex(i => Math.min(students.length - 1, i + 1))}
-              disabled={index === students.length - 1}
-              className="flex-shrink-0 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-red-50 disabled:opacity-30 transition-all"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          {/* Mobile: preview full width tanpa tombol samping */}
-          <div
-            className="sm:hidden flex justify-center overflow-hidden"
-            style={{ height: `${1122 * previewScale}px` }}
-          >
-            <div
-              className="shadow-2xl rounded-lg overflow-hidden"
+              className="shadow-2xl rounded-lg overflow-hidden origin-top"
               style={{
-                transform: `scale(${previewScale})`,
-                transformOrigin: 'top center',
+                width: `${CANVAS_W * previewScale}px`,
+                zoom: previewScale,
               }}
             >
               {student && (
