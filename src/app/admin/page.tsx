@@ -1,5 +1,6 @@
 'use client'
 export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useRef } from 'react'
 import Navbar from '@/components/Navbar'
 import { supabase, Settings } from '@/lib/supabase'
@@ -17,22 +18,26 @@ export default function AdminPage() {
   useEffect(() => {
     async function load() {
       const { data } = await supabase.from('settings').select('*').single()
-      if (data) setSettings(data)
+      if (data) setSettings(data as Settings)
       setLoading(false)
     }
     load()
   }, [])
 
+  async function upsertSettings(updates: Partial<Settings>) {
+    const { data: existing } = await supabase.from('settings').select('id').maybeSingle()
+    if (existing) {
+      const row = existing as { id: string }
+      await supabase.from('settings').update(updates as Record<string, unknown>).eq('id', row.id)
+    } else {
+      await supabase.from('settings').insert(updates as Record<string, unknown>)
+    }
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const { data: existing } = await supabase.from('settings').select('id').single()
-    const existingData = existing as { id: string } | null
-    if (existingData?.id) {
-      await supabase.from('settings').update({ tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek }).eq('id', existingData.id)
-    } else {
-      await supabase.from('settings').insert({ tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek })
-    }
+    await upsertSettings({ tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek })
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
@@ -51,13 +56,7 @@ export default function AdminPage() {
     const { data: urlData } = supabase.storage.from('sertifikat').getPublicUrl(filename)
     const url = urlData.publicUrl
 
-    const { data: existing } = await supabase.from('settings').select('id').single()
-    const existingData = existing as { id: string } | null
-    if (existingData?.id) {
-      await supabase.from('settings').update({ background_url: url }).eq('id', existingData.id)
-    } else {
-      await supabase.from('settings').insert({ background_url: url, tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek })
-    }
+    await upsertSettings({ background_url: url, tanggal_ttd: settings.tanggal_ttd, nama_kepsek: settings.nama_kepsek })
 
     setSettings(s => ({ ...s, background_url: url }))
     setUploadMsg('✅ Background berhasil diupload!')
@@ -83,7 +82,6 @@ export default function AdminPage() {
           <p className="text-sm text-gray-500 mt-0.5">Kelola teks sertifikat dan background</p>
         </div>
 
-        {/* Form pengaturan teks */}
         <div className="card mb-5">
           <h2 className="font-bold text-gray-700 mb-4">Teks Sertifikat</h2>
           <form onSubmit={handleSave} className="space-y-4">
@@ -115,22 +113,19 @@ export default function AdminPage() {
           </form>
         </div>
 
-        {/* Upload background */}
         <div className="card">
           <h2 className="font-bold text-gray-700 mb-4">Background Sertifikat</h2>
           <p className="text-sm text-gray-500 mb-4">
             Upload file JPG/PNG desain sertifikat (tanpa teks tanggal & nama kepala sekolah).
-            Ukuran ideal: <strong>794 × 1123 px</strong> (A4).
+            Ukuran file: <strong>1350 × 1910 px</strong> (F4).
           </p>
 
-          {settings.background_url && (
+          {settings.background_url ? (
             <div className="mb-4 rounded-lg overflow-hidden border border-gray-100 shadow-sm" style={{ maxHeight: '300px' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={settings.background_url} alt="Background sertifikat" className="w-full object-contain" />
             </div>
-          )}
-
-          {!settings.background_url && (
+          ) : (
             <div className="mb-4 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center py-10 text-gray-300">
               <ImageIcon size={40} />
               <p className="text-sm mt-2">Belum ada background</p>
