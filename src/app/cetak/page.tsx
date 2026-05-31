@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from 'react'
 import Navbar from '@/components/Navbar'
 import SertifikatPreview from '@/components/SertifikatPreview'
 import { supabase, Student, Settings } from '@/lib/supabase'
-import { ChevronLeft, ChevronRight, Download, Image, FileText, Package, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Image, FileText, Package, Loader2 } from 'lucide-react'
 
 export default function CetakPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [settings, setSettings] = useState<Settings>({ tanggal_ttd: '', nama_kepsek: '' })
   const [backgroundUrl, setBackgroundUrl] = useState('')
   const [index, setIndex] = useState(0)
+  const [captureStudent, setCaptureStudent] = useState<Student | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState('')
   const previewRef = useRef<HTMLDivElement>(null)
@@ -31,32 +32,67 @@ export default function CetakPage() {
 
   const student = students[index]
 
-  async function captureCanvas(): Promise<HTMLCanvasElement> {
+  /**
+   * Render student tertentu ke off-screen container (tanpa transform/scale),
+   * lalu capture dengan html2canvas. Ini memastikan posisi absolute pixel
+   * teks tidak terpengaruh CSS transform dari parent preview.
+   */
+  async function captureStudent(s: Student): Promise<HTMLCanvasElement> {
     const html2canvas = (await import('html2canvas')).default
-    const el = document.getElementById('sertifikat-canvas')!
-    return html2canvas(el, { useCORS: true, scale: 2, logging: false })
+
+    // Pastikan off-screen canvas sudah siap (gambar background ter-load)
+    const offscreenEl = document.getElementById('sertifikat-offscreen')!
+
+    // Tunggu semua gambar di dalam off-screen container selesai load
+    const imgs = offscreenEl.querySelectorAll('img')
+    await Promise.all(
+      Array.from(imgs).map(
+        img =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>(resolve => {
+                img.onload = () => resolve()
+                img.onerror = () => resolve()
+              })
+      )
+    )
+
+    return html2canvas(offscreenEl, {
+      useCORS: true,
+      scale: 2,
+      logging: false,
+      // Off-screen container sudah di luar viewport; kita perlu posisinya tepat
+      scrollX: 0,
+      scrollY: 0,
+    })
   }
 
   async function downloadPNG() {
     if (!student) return
     setDownloading('png')
-    const canvas = await captureCanvas()
+    setCaptureStudent(student)
+    // Tunggu React render off-screen + gambar load
+    await new Promise(r => setTimeout(r, 800))
+    const canvas = await captureStudent(student)
     const a = document.createElement('a')
     a.download = `sertifikat_${student.nama.replace(/\s+/g, '_')}.png`
     a.href = canvas.toDataURL('image/png')
     a.click()
+    setCaptureStudent(null)
     setDownloading('')
   }
 
   async function downloadPDF() {
     if (!student) return
     setDownloading('pdf')
-    const canvas = await captureCanvas()
+    setCaptureStudent(student)
+    await new Promise(r => setTimeout(r, 800))
+    const canvas = await captureStudent(student)
     const { jsPDF } = await import('jspdf')
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-    const imgData = canvas.toDataURL('image/png')
-    pdf.addImage(imgData, 'PNG', 0, 0, 210, 297)
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297)
     pdf.save(`sertifikat_${student.nama.replace(/\s+/g, '_')}.pdf`)
+    setCaptureStudent(null)
     setDownloading('')
   }
 
@@ -65,14 +101,14 @@ export default function CetakPage() {
     setDownloading('zip-' + format)
     const JSZip = (await import('jszip')).default
     const zip = new JSZip()
-    const html2canvas = (await import('html2canvas')).default
 
     for (let i = 0; i < students.length; i++) {
-      setIndex(i)
-      await new Promise(r => setTimeout(r, 600))
-      const el = document.getElementById('sertifikat-canvas')!
-      const canvas = await html2canvas(el, { useCORS: true, scale: 2, logging: false })
       const s = students[i]
+      setIndex(i)
+      setCaptureStudent(s)
+      // Tunggu render + gambar load
+      await new Promise(r => setTimeout(r, 800))
+      const canvas = await captureStudent(s)
       const fname = `sertifikat_${s.nama.replace(/\s+/g, '_')}`
 
       if (format === 'png') {
@@ -86,6 +122,7 @@ export default function CetakPage() {
       }
     }
 
+    setCaptureStudent(null)
     const blob = await zip.generateAsync({ type: 'blob' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -114,12 +151,39 @@ export default function CetakPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
+
+      {/*
+        OFF-SCREEN CAPTURE CONTAINER
+        - Dirender di luar viewport (position fixed, left: -9999px)
+        - Tidak ada transform/scale sama sekali → posisi pixel absolut 100% akurat
+        - Hanya muncul saat proses download berlangsung (captureStudent !== null)
+      */}
+      {captureStudent && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: '-9999px',
+            zIndex: -1,
+            pointerEvents: 'none',
+          }}
+        >
+          <SertifikatPreview
+            id="sertifikat-offscreen"
+            student={captureStudent}
+            settings={settings}
+            backgroundUrl={backgroundUrl}
+          />
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Cetak Sertifikat</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              Siswa {index + 1} dari {students.length}: <span className="font-semibold text-gray-700">{student?.nama}</span>
+              Siswa {index + 1} dari {students.length}:{' '}
+              <span className="font-semibold text-gray-700">{student?.nama}</span>
             </p>
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
@@ -154,12 +218,16 @@ export default function CetakPage() {
             </button>
           </div>
 
-          {/* Preview sertifikat */}
+          {/* Preview sertifikat — scale hanya untuk tampilan, TIDAK ikut di-capture */}
           <div className="flex-1 flex flex-col items-center">
-            <div className="shadow-2xl rounded-lg overflow-hidden" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
+            <div
+              className="shadow-2xl rounded-lg overflow-hidden"
+              style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}
+            >
               {student && (
                 <SertifikatPreview
                   ref={previewRef}
+                  id="sertifikat-canvas"
                   student={student}
                   settings={settings}
                   backgroundUrl={backgroundUrl}
@@ -180,7 +248,7 @@ export default function CetakPage() {
           </div>
         </div>
 
-        {/* Daftar nama siswa (navigasi cepat) */}
+        {/* Navigasi cepat */}
         <div className="mt-6 card">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Navigasi Cepat</p>
           <div className="flex flex-wrap gap-2">
@@ -189,7 +257,9 @@ export default function CetakPage() {
                 key={s.id}
                 onClick={() => setIndex(i)}
                 className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all ${
-                  i === index ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600'
+                  i === index
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600'
                 }`}
               >
                 {s.nama}
@@ -198,12 +268,15 @@ export default function CetakPage() {
           </div>
         </div>
 
+        {/* Overlay loading saat download ZIP */}
         {downloading.startsWith('zip') && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl p-8 shadow-xl flex flex-col items-center gap-3">
               <Loader2 size={32} className="animate-spin text-red-500" />
               <p className="font-semibold text-gray-700">Membuat ZIP semua sertifikat...</p>
-              <p className="text-sm text-gray-400">Sedang memproses siswa {index + 1} dari {students.length}</p>
+              <p className="text-sm text-gray-400">
+                Sedang memproses siswa {index + 1} dari {students.length}
+              </p>
             </div>
           </div>
         )}
